@@ -1,16 +1,21 @@
-namespace Calidad_Juego;
+// Autor: Delfin Estanis Roque Mullisaca
+// Fecha: 07/11/2025
+// Versión: 1.0
+// Universidad: UNIVERSIDAD NACIONAL DE JULIACA
+// Descripción: Punto de entrada del juego de aviones.
 
-static class Program
+using System;
+using System.Windows.Forms;
+
+namespace Calidad_Juego
 {
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
-    [STAThread]
-    static void Main()
+    internal static class Program
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
-        ApplicationConfiguration.Initialize();
-        Application.Run(new Form1());
+        [STAThread]
+        private static void Main()
+        {
+            ApplicationConfiguration.Initialize();
+            Application.Run(new Form1());
+        }
     }
 }
