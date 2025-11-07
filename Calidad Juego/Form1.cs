@@ -52,6 +52,21 @@ namespace Calidad_Juego
         private readonly Dictionary<PictureBox, float> velocidadHorizontalEnemiga = new();
         private readonly Dictionary<PictureBox, PointF> velocidadObstaculos = new();
         private readonly Dictionary<PictureBox, int> faseObstaculo = new();
+        private readonly Dictionary<PictureBox, BarraVidaEnemigo> barrasVidaEnemigo = new();
+
+        private sealed class BarraVidaEnemigo
+        {
+            public BarraVidaEnemigo(Panel contenedor, Panel relleno, int vidaMaxima)
+            {
+                Contenedor = contenedor;
+                Relleno = relleno;
+                VidaMaxima = vidaMaxima;
+            }
+
+            public Panel Contenedor { get; }
+            public Panel Relleno { get; }
+            public int VidaMaxima { get; set; }
+        }
 
         private static readonly Point[] NaveTipo1 =
         {
@@ -230,6 +245,8 @@ namespace Calidad_Juego
 
             foreach (var enemigo in enemigosActivos.ToArray())
             {
+                QuitarBarraVidaEnemigo(enemigo);
+
                 if (ReferenceEquals(enemigo, naveRival))
                 {
                     contiene.Controls.Remove(enemigo);
@@ -246,6 +263,11 @@ namespace Calidad_Juego
             contadorDisparoEnemigo.Clear();
             direccionHorizontalEnemiga.Clear();
             velocidadHorizontalEnemiga.Clear();
+
+            foreach (var enemigo in barrasVidaEnemigo.Keys.ToArray())
+            {
+                QuitarBarraVidaEnemigo(enemigo);
+            }
 
             foreach (var obstaculo in obstaculosActivos.ToArray())
             {
@@ -331,9 +353,125 @@ namespace Calidad_Juego
                 contadorDisparoEnemigo[enemigo] = GeneradorAleatorio.Next(10, 35);
                 direccionHorizontalEnemiga[enemigo] = i % 2 == 0 ? 1 : -1;
                 velocidadHorizontalEnemiga[enemigo] = 1.6f + Math.Min(3.5f, nivelActual * 0.45f) + (i * 0.25f);
+
+                ConfigurarBarraVidaEnemigo(enemigo, vida);
             }
 
             enemigosRestantes = ContarEnemigosVivos();
+        }
+
+        private void ConfigurarBarraVidaEnemigo(PictureBox enemigo, int vidaMaxima)
+        {
+            if (vidaMaxima <= 0)
+            {
+                return;
+            }
+
+            if (!barrasVidaEnemigo.TryGetValue(enemigo, out var barra))
+            {
+                var contenedor = new Panel
+                {
+                    Size = new Size(enemigo.Width, 6),
+                    BackColor = Color.FromArgb(140, Color.Black),
+                    Visible = enemigo.Visible,
+                    Tag = "BarraVidaEnemigo"
+                };
+
+                var relleno = new Panel
+                {
+                    Size = new Size(Math.Max(0, contenedor.Width - 2), 4),
+                    BackColor = Color.SpringGreen,
+                    Location = new Point(1, 1)
+                };
+
+                contenedor.Controls.Add(relleno);
+                contiene.Controls.Add(contenedor);
+
+                barra = new BarraVidaEnemigo(contenedor, relleno, vidaMaxima);
+                barrasVidaEnemigo[enemigo] = barra;
+            }
+            else
+            {
+                barra.VidaMaxima = vidaMaxima;
+                barra.Contenedor.Size = new Size(enemigo.Width, barra.Contenedor.Height);
+                if (barra.Contenedor.Parent != contiene)
+                {
+                    barra.Contenedor.Parent?.Controls.Remove(barra.Contenedor);
+                    contiene.Controls.Add(barra.Contenedor);
+                }
+
+                barra.Contenedor.Visible = enemigo.Visible;
+            }
+
+            ActualizarPosicionBarraVidaEnemigo(enemigo);
+            ActualizarBarraVidaEnemigo(enemigo, vidaMaxima);
+        }
+
+        private void ActualizarPosicionBarraVidaEnemigo(PictureBox enemigo)
+        {
+            if (!barrasVidaEnemigo.TryGetValue(enemigo, out var barra))
+            {
+                return;
+            }
+
+            barra.Contenedor.Size = new Size(enemigo.Width, barra.Contenedor.Height);
+            int posicionX = enemigo.Left;
+            int posicionY = Math.Max(0, enemigo.Top - barra.Contenedor.Height - 4);
+            barra.Contenedor.Location = new Point(posicionX, posicionY);
+
+            if (enemigo.Visible && Convert.ToInt32(enemigo.Tag) > 0)
+            {
+                barra.Contenedor.Visible = true;
+                barra.Contenedor.BringToFront();
+            }
+            else
+            {
+                barra.Contenedor.Visible = false;
+            }
+        }
+
+        private void ActualizarBarraVidaEnemigo(PictureBox enemigo, int vidaActual)
+        {
+            if (!barrasVidaEnemigo.TryGetValue(enemigo, out var barra) || barra.VidaMaxima <= 0)
+            {
+                return;
+            }
+
+            int anchoDisponible = Math.Max(0, barra.Contenedor.Width - 2);
+            int anchoRelleno = vidaActual <= 0
+                ? 0
+                : (int)Math.Round((double)vidaActual / barra.VidaMaxima * anchoDisponible);
+
+            barra.Relleno.Width = Math.Clamp(anchoRelleno, 0, anchoDisponible);
+
+            barra.Relleno.BackColor = vidaActual <= barra.VidaMaxima * 0.3
+                ? Color.OrangeRed
+                : vidaActual <= barra.VidaMaxima * 0.6
+                    ? Color.Gold
+                    : Color.SpringGreen;
+
+            barra.Contenedor.Visible = enemigo.Visible && vidaActual > 0;
+            if (barra.Contenedor.Visible)
+            {
+                barra.Contenedor.BringToFront();
+            }
+        }
+
+        private void QuitarBarraVidaEnemigo(PictureBox enemigo)
+        {
+            if (!barrasVidaEnemigo.TryGetValue(enemigo, out var barra))
+            {
+                return;
+            }
+
+            barrasVidaEnemigo.Remove(enemigo);
+
+            if (barra.Contenedor.Parent != null)
+            {
+                barra.Contenedor.Parent.Controls.Remove(barra.Contenedor);
+            }
+
+            barra.Contenedor.Dispose();
         }
 
         private void ConfigurarObstaculosNivel()
@@ -638,6 +776,8 @@ namespace Calidad_Juego
             {
                 return;
             }
+
+            ActualizarBarraVidaEnemigo(objetivo, vidaActual);
 
             if (vidaActual <= 0)
             {
@@ -1084,6 +1224,8 @@ namespace Calidad_Juego
                 int oscilacion = (int)Math.Round(Math.Sin(factorTiempo) * 2.5);
                 int nuevoY = Math.Clamp(enemigo.Top + oscilacion, 20, Math.Max(20, contiene.Height / 2 - 40));
                 enemigo.Top = nuevoY;
+
+                ActualizarPosicionBarraVidaEnemigo(enemigo);
             }
         }
 
@@ -1301,6 +1443,7 @@ namespace Calidad_Juego
             contadorDisparoEnemigo.Remove(enemigo);
             direccionHorizontalEnemiga.Remove(enemigo);
             velocidadHorizontalEnemiga.Remove(enemigo);
+            QuitarBarraVidaEnemigo(enemigo);
 
             if (!ReferenceEquals(enemigo, naveRival))
             {
