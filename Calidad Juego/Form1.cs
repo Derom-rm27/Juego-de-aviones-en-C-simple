@@ -11,7 +11,7 @@ using System.Drawing.Drawing2D; // Librería para GraphicsPath
 // Definiciones de la aplicación (asumidas para que el código sea completo)
 namespace MoverObjeto
 {
-    // Form1 es una clase parcial. El método Dispose es manejado por Form1.Designer.cs.
+    // Form1 es una clase parcial, asume que InitializeComponent se define en otro archivo
     public partial class Form1 : Form
     {
         // Componentes de la UI que se asumen existen (declaraciones de marcador de posición)
@@ -22,17 +22,11 @@ namespace MoverObjeto
         PictureBox navex = new PictureBox();
         PictureBox naveRival = new PictureBox();
         PictureBox contiene = new PictureBox();
-        
-        // CORRECCIÓN: Se especifica System.Windows.Forms.Timer para evitar ambigüedad (CS0104)
-        System.Windows.Forms.Timer tiempo; 
+        Timer tiempo;
 
         int Dispara = 0;
         bool flag = false;
         float angulo = 0;
-
-        // --- SECCIÓN DISPOSE ELIMINADA ---
-        // El método Dispose y components se encuentran ahora solo en Form1.Designer.cs
-        // ---------------------------------
 
         //********** DIAGRAMAR DEL MISIL ***********//
         public void CrearMisil(int AngRotar, Color pintar, string nombre, int x, int y)
@@ -557,7 +551,7 @@ namespace MoverObjeto
             navex.Location = new Point(aleatx, aleaty); // Corregida la x
             naveRival.Location = new Point(aleatx, 50); // Posición inicial asumida para el rival
 
-            tiempo = new System.Windows.Forms.Timer(); // Inicialización
+            tiempo = new Timer(); // Inicialización
             tiempo.Interval = 1;
             tiempo.Enabled = true;
             tiempo.Tick += new EventHandler(ImpactarTick);
@@ -568,8 +562,6 @@ namespace MoverObjeto
         // Se asume la existencia de este método para que la clase compile
         private void InitializeComponent() 
         {
-            // Ahora InitializeComponent no necesita inicializar 'components' ya que Form1.Designer.cs lo hace.
-
             // Lógica de inicialización de componentes de Form1.Designer.cs
             this.SuspendLayout();
             // 
