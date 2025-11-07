@@ -9,8 +9,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using MediaPlayer = System.Windows.Media.MediaPlayer;
 
 namespace Calidad_Juego
 {
@@ -22,6 +24,7 @@ namespace Calidad_Juego
         private const int VelocidadMisilRival = 5;
         private const float SuavizadoAngulo = 0.25f;
         private const int IntervaloDisparoJugador = 12;
+        private const float EscalaMisil = 1.8f;
 
         private static readonly Random GeneradorAleatorio = new();
 
@@ -32,6 +35,8 @@ namespace Calidad_Juego
         private Image? fondoEscenario;
 
         private System.Windows.Forms.Timer? tiempo;
+        private readonly MediaPlayer reproductorMusica = new();
+        private bool musicaInicializada;
         private bool moverJugadorHaciaIzquierda;
         private bool moverJugadorHaciaDerecha;
         private bool moverJugadorHaciaArriba;
@@ -127,7 +132,11 @@ namespace Calidad_Juego
             Load += Form1_Load;
             KeyDown += ActividadTecla;
             KeyUp += DetenerActividadTecla;
-            FormClosed += (_, _) => fondoEscenario?.Dispose();
+            FormClosed += (_, _) =>
+            {
+                fondoEscenario?.Dispose();
+                reproductorMusica.Close();
+            };
             botonReintentar.Click += BotonReintentar_Click;
         }
 
@@ -198,6 +207,7 @@ namespace Calidad_Juego
             }
 
             fondoEscenario = CrearFondoEscenario(contiene.Size);
+            ConfigurarMusicaFondo();
             contiene.BackgroundImage = fondoEscenario;
             contiene.BackgroundImageLayout = ImageLayout.Stretch;
 
@@ -213,6 +223,46 @@ namespace Calidad_Juego
             };
             tiempo.Tick += ImpactarTick;
             tiempo.Start();
+        }
+
+        private void ConfigurarMusicaFondo()
+        {
+            const string rutaCancion = @"C:\\Users\\derom\\Music\\Eagle Flight (OST)  Inon Zur - The Grim Falcon.mp3";
+
+            try
+            {
+                if (musicaInicializada)
+                {
+                    if (reproductorMusica.Source != null)
+                    {
+                        reproductorMusica.Position = TimeSpan.Zero;
+                        reproductorMusica.Play();
+                    }
+                    return;
+                }
+
+                if (!File.Exists(rutaCancion))
+                {
+                    Debug.WriteLine($"No se encontró la pista de fondo en la ruta: {rutaCancion}");
+                    return;
+                }
+
+                reproductorMusica.MediaEnded += ReproductorMusica_MediaEnded;
+                reproductorMusica.Open(new Uri(rutaCancion, UriKind.Absolute));
+                reproductorMusica.Volume = 0.55;
+                reproductorMusica.Play();
+                musicaInicializada = true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"No se pudo reproducir la música de fondo: {ex.Message}");
+            }
+        }
+
+        private void ReproductorMusica_MediaEnded(object? sender, EventArgs e)
+        {
+            reproductorMusica.Position = TimeSpan.Zero;
+            reproductorMusica.Play();
         }
 
         private void ConfigurarNivelActual()
@@ -609,12 +659,36 @@ namespace Calidad_Juego
             using var trayectoria = new GraphicsPath();
             trayectoria.AddPolygon(puntosRotados);
 
+            using (var escala = new Matrix())
+            {
+                escala.Scale(EscalaMisil, EscalaMisil);
+                trayectoria.Transform(escala);
+            }
+
+            RectangleF limites = trayectoria.GetBounds();
+            using (var ajuste = new Matrix())
+            {
+                ajuste.Translate(-limites.X, -limites.Y);
+                trayectoria.Transform(ajuste);
+            }
+
+            limites = trayectoria.GetBounds();
+            Size tamanoMisil = new((int)Math.Ceiling(limites.Width), (int)Math.Ceiling(limites.Height));
+            if (tamanoMisil.Width < 4)
+            {
+                tamanoMisil.Width = 4;
+            }
+            if (tamanoMisil.Height < 4)
+            {
+                tamanoMisil.Height = 4;
+            }
+
             var misil = new PictureBox
             {
-                Size = new Size(3, 11),
+                Size = tamanoMisil,
                 BackColor = Color.Transparent,
                 Tag = nombre,
-                Location = new Point(x - 1, y - 5)
+                Location = new Point(x - (tamanoMisil.Width / 2), y - (tamanoMisil.Height / 2))
             };
             misil.Region = new Region(trayectoria);
 
@@ -630,7 +704,7 @@ namespace Calidad_Juego
                     LinearGradientMode.Vertical);
                 grafico.FillPath(gradiente, trayectoria);
 
-                using var contorno = new Pen(Color.FromArgb(160, color), 1f);
+                using var contorno = new Pen(Color.FromArgb(160, color), 1.2f);
                 grafico.DrawPath(contorno, trayectoria);
             }
 
