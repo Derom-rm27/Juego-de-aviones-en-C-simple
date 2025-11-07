@@ -21,7 +21,7 @@ namespace Calidad_Juego
         private readonly PictureBox naveRival = new();
         private readonly PictureBox contiene = new();
 
-        private Timer? tiempo;
+        private System.Windows.Forms.Timer? tiempo;
         private int dispara;
         private bool moverHaciaIzquierda;
         private float angulo;
@@ -134,7 +134,7 @@ namespace Calidad_Juego
 
             tiempo?.Stop();
             tiempo?.Dispose();
-            tiempo = new Timer
+            tiempo = new System.Windows.Forms.Timer
             {
                 Interval = 1,
                 Enabled = true
