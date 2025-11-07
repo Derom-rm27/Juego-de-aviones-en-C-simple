@@ -5,6 +5,7 @@
 // Descripción: Lógica principal del juego de aviones sin modificar la estructura base.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -31,8 +32,6 @@ namespace Calidad_Juego
         private Image? fondoEscenario;
 
         private System.Windows.Forms.Timer? tiempo;
-        private int dispara;
-        private bool moverHaciaIzquierda;
         private bool moverJugadorHaciaIzquierda;
         private bool moverJugadorHaciaDerecha;
         private bool moverJugadorHaciaArriba;
@@ -40,6 +39,19 @@ namespace Calidad_Juego
         private float angulo;
         private bool disparoActivo;
         private int recargaDisparo;
+        private int nivelActual;
+        private int enemigosRestantes;
+        private bool enTransicionNivel;
+
+        private const int NivelMaximo = 5;
+
+        private readonly List<PictureBox> enemigosActivos = new();
+        private readonly List<PictureBox> obstaculosActivos = new();
+        private readonly Dictionary<PictureBox, int> contadorDisparoEnemigo = new();
+        private readonly Dictionary<PictureBox, int> direccionHorizontalEnemiga = new();
+        private readonly Dictionary<PictureBox, float> velocidadHorizontalEnemiga = new();
+        private readonly Dictionary<PictureBox, PointF> velocidadObstaculos = new();
+        private readonly Dictionary<PictureBox, int> faseObstaculo = new();
 
         private static readonly Point[] NaveTipo1 =
         {
@@ -111,8 +123,6 @@ namespace Calidad_Juego
 
         private void Iniciar()
         {
-            dispara = 0;
-            moverHaciaIzquierda = false;
             moverJugadorHaciaIzquierda = false;
             moverJugadorHaciaDerecha = false;
             moverJugadorHaciaArriba = false;
@@ -120,12 +130,23 @@ namespace Calidad_Juego
             angulo = 0;
             disparoActivo = false;
             recargaDisparo = 0;
+            nivelActual = 1;
+            enemigosRestantes = 0;
+            enTransicionNivel = false;
 
             botonReintentar.Visible = false;
             botonReintentar.Enabled = false;
 
+            enemigosActivos.Clear();
+            obstaculosActivos.Clear();
+            contadorDisparoEnemigo.Clear();
+            direccionHorizontalEnemiga.Clear();
+            velocidadHorizontalEnemiga.Clear();
+            velocidadObstaculos.Clear();
+            faseObstaculo.Clear();
+
             labelEstado.Text = "Mantén presionadas las flechas para maniobrar.";
-            labelIndicaciones.Text = "Presiona Espacio para disparar y Enter para reiniciar la misión.";
+            labelIndicaciones.Text = "Espacio para disparar, Enter para reiniciar: supera niveles, meteoritos y escuadrones rivales.";
             labelIndicaciones.MaximumSize = new Size(ClientSize.Width - 24, 0);
 
             int margenSuperior = label2.Bottom + 20;
@@ -167,30 +188,7 @@ namespace Calidad_Juego
 
             contiene.Controls.Clear();
 
-            CrearNave(navex, 0, 1, Color.SeaGreen, 20);
-            CrearNave(naveRival, 180, GeneradorAleatorio.Next(1, 4), Color.DarkBlue, 50);
-
-            int maxXJugador = Math.Max(1, contiene.Width - navex.Width - 1);
-            int maxYJugador = Math.Max(1, contiene.Height - navex.Height - 30);
-            int posicionXJugador = GeneradorAleatorio.Next(0, maxXJugador);
-            int minYJugador = Math.Max(contiene.Height / 2, maxYJugador - 60);
-            if (minYJugador >= maxYJugador)
-            {
-                minYJugador = Math.Max(0, maxYJugador - 20);
-            }
-
-            int posicionYJugador = GeneradorAleatorio.Next(minYJugador, Math.Max(minYJugador + 1, maxYJugador));
-
-            navex.Location = new Point(posicionXJugador, posicionYJugador);
-            navex.BringToFront();
-
-            int maxXRival = Math.Max(1, contiene.Width - naveRival.Width - 1);
-            int posicionXRival = GeneradorAleatorio.Next(0, maxXRival);
-            naveRival.Location = new Point(posicionXRival, 40);
-            naveRival.BringToFront();
-
-            label1.Text = $"Vida del Rival: {naveRival.Tag}";
-            label2.Text = $"Vida del Avión: {navex.Tag}";
+            ConfigurarNivelActual();
 
             tiempo?.Stop();
             tiempo?.Dispose();
@@ -200,6 +198,271 @@ namespace Calidad_Juego
             };
             tiempo.Tick += ImpactarTick;
             tiempo.Start();
+        }
+
+        private void ConfigurarNivelActual()
+        {
+            disparoActivo = false;
+            recargaDisparo = 0;
+            enTransicionNivel = false;
+
+            LimpiarElementosTemporales();
+
+            int vidaJugador = CalcularVidaJugador();
+            CrearNave(navex, 0, 1, Color.SeaGreen, vidaJugador);
+            RestablecerJugadorParaNivel(vidaJugador);
+
+            ConfigurarEnemigosNivel();
+            ConfigurarObstaculosNivel();
+            ActualizarIndicadoresNivel(false);
+            navex.BringToFront();
+        }
+
+        private void LimpiarElementosTemporales()
+        {
+            foreach (var misil in contiene.Controls
+                         .OfType<PictureBox>()
+                         .Where(pb => pb.Tag is string nombre && (nombre == "Misil" || nombre == "Rival"))
+                         .ToArray())
+            {
+                misil.Dispose();
+            }
+
+            foreach (var enemigo in enemigosActivos.ToArray())
+            {
+                if (ReferenceEquals(enemigo, naveRival))
+                {
+                    contiene.Controls.Remove(enemigo);
+                    enemigo.Visible = false;
+                }
+                else
+                {
+                    contiene.Controls.Remove(enemigo);
+                    enemigo.Dispose();
+                }
+            }
+
+            enemigosActivos.Clear();
+            contadorDisparoEnemigo.Clear();
+            direccionHorizontalEnemiga.Clear();
+            velocidadHorizontalEnemiga.Clear();
+
+            foreach (var obstaculo in obstaculosActivos.ToArray())
+            {
+                contiene.Controls.Remove(obstaculo);
+                obstaculo.Dispose();
+            }
+
+            obstaculosActivos.Clear();
+            velocidadObstaculos.Clear();
+            faseObstaculo.Clear();
+        }
+
+        private int CalcularVidaJugador()
+        {
+            int vidaBase = 20 + Math.Max(0, (nivelActual - 1) * 2);
+            return Math.Min(40, vidaBase);
+        }
+
+        private void RestablecerJugadorParaNivel(int vidaJugador)
+        {
+            navex.Tag = vidaJugador;
+            navex.Visible = true;
+
+            int posicionXJugador = Math.Max(0, (contiene.Width - navex.Width) / 2);
+            int posicionYJugador = Math.Max(contiene.Height - navex.Height - 30, contiene.Height / 2 + 50);
+            posicionYJugador = Math.Min(posicionYJugador, Math.Max(0, contiene.Height - navex.Height));
+
+            navex.Location = new Point(posicionXJugador, posicionYJugador);
+
+            if (!contiene.Controls.Contains(navex))
+            {
+                contiene.Controls.Add(navex);
+            }
+
+            navex.BringToFront();
+            label2.Text = $"Vida del Avión: {vidaJugador}";
+        }
+
+        private void ConfigurarEnemigosNivel()
+        {
+            enemigosActivos.Clear();
+            contadorDisparoEnemigo.Clear();
+            direccionHorizontalEnemiga.Clear();
+            velocidadHorizontalEnemiga.Clear();
+
+            int cantidadEnemigos = Math.Min(1 + nivelActual, 6);
+            if (cantidadEnemigos <= 0)
+            {
+                enemigosRestantes = 0;
+                return;
+            }
+
+            int anchoDisponible = Math.Max(1, contiene.Width - 60);
+            int separacion = cantidadEnemigos <= 1 ? 0 : anchoDisponible / (cantidadEnemigos - 1);
+
+            for (int i = 0; i < cantidadEnemigos; i++)
+            {
+                PictureBox enemigo = i == 0 ? naveRival : new PictureBox();
+
+                int tipo = (nivelActual + i) % 3 + 1;
+                Color color = Color.FromArgb(
+                    Math.Clamp(70 + (nivelActual * 25) + (i * 15), 60, 240),
+                    Math.Clamp(80 + (i * 30), 70, 240),
+                    Math.Clamp(180 - (nivelActual * 10) + (i * 5), 90, 230));
+                int vida = 18 + (nivelActual * 4) + (i * 3);
+
+                CrearNave(enemigo, 180, tipo, color, vida);
+
+                int posicionX = 30 + (i * separacion);
+                posicionX = Math.Clamp(posicionX, 0, Math.Max(0, contiene.Width - enemigo.Width));
+                int posicionY = 40 + (i % 2 == 0 ? 0 : 26);
+                enemigo.Location = new Point(posicionX, posicionY);
+                enemigo.Visible = true;
+
+                if (!contiene.Controls.Contains(enemigo))
+                {
+                    contiene.Controls.Add(enemigo);
+                }
+
+                enemigo.BringToFront();
+
+                enemigosActivos.Add(enemigo);
+                contadorDisparoEnemigo[enemigo] = GeneradorAleatorio.Next(10, 35);
+                direccionHorizontalEnemiga[enemigo] = i % 2 == 0 ? 1 : -1;
+                velocidadHorizontalEnemiga[enemigo] = 1.6f + Math.Min(3.5f, nivelActual * 0.45f) + (i * 0.25f);
+            }
+
+            enemigosRestantes = ContarEnemigosVivos();
+        }
+
+        private void ConfigurarObstaculosNivel()
+        {
+            foreach (var obstaculo in obstaculosActivos.ToArray())
+            {
+                contiene.Controls.Remove(obstaculo);
+                obstaculo.Dispose();
+            }
+
+            obstaculosActivos.Clear();
+            velocidadObstaculos.Clear();
+            faseObstaculo.Clear();
+
+            int cantidadObstaculos = Math.Min(3 + nivelActual, 8);
+            for (int i = 0; i < cantidadObstaculos; i++)
+            {
+                int tamano = GeneradorAleatorio.Next(24, 48);
+                var obstaculo = new PictureBox
+                {
+                    Size = new Size(tamano, tamano),
+                    BackColor = Color.Transparent,
+                    Tag = "Obstaculo"
+                };
+
+                obstaculo.Image = CrearImagenObstaculo(obstaculo.Size, i);
+                obstaculo.Location = new Point(
+                    GeneradorAleatorio.Next(0, Math.Max(1, contiene.Width - obstaculo.Width)),
+                    GeneradorAleatorio.Next(100, Math.Max(120, contiene.Height / 2)));
+
+                contiene.Controls.Add(obstaculo);
+                obstaculo.BringToFront();
+
+                obstaculosActivos.Add(obstaculo);
+                velocidadObstaculos[obstaculo] = new PointF(
+                    (float)(GeneradorAleatorio.NextDouble() * 1.6 - 0.8),
+                    0.8f + (nivelActual * 0.25f));
+                faseObstaculo[obstaculo] = GeneradorAleatorio.Next(0, 360);
+            }
+        }
+
+        private static Image CrearImagenObstaculo(Size tamano, int indice)
+        {
+            var meteorito = new Bitmap(tamano.Width, tamano.Height);
+            using (var grafico = Graphics.FromImage(meteorito))
+            {
+                grafico.SmoothingMode = SmoothingMode.AntiAlias;
+                grafico.Clear(Color.Transparent);
+
+                Rectangle contenedor = new Rectangle(Point.Empty, tamano);
+                using var camino = new GraphicsPath();
+                camino.AddEllipse(contenedor);
+
+                using var gradiente = new PathGradientBrush(camino)
+                {
+                    CenterColor = Color.FromArgb(220, 255, 200, 120),
+                    SurroundColors = new[]
+                    {
+                        Color.FromArgb(255, 120 + (indice * 10 % 80), 60, 25),
+                        Color.FromArgb(255, 90 + (indice * 15 % 90), 40, 18),
+                        Color.FromArgb(255, 110 + (indice * 12 % 70), 55, 20)
+                    }
+                };
+
+                grafico.FillEllipse(gradiente, contenedor);
+
+                using var contorno = new Pen(Color.FromArgb(200, 40, 20), 2f);
+                grafico.DrawEllipse(contorno, contenedor);
+
+                using var brillo = new LinearGradientBrush(
+                    new Rectangle(0, 0, tamano.Width, tamano.Height / 2),
+                    Color.FromArgb(180, Color.WhiteSmoke),
+                    Color.Transparent,
+                    LinearGradientMode.Vertical);
+                grafico.FillEllipse(brillo, new Rectangle(4, 4, tamano.Width - 8, tamano.Height / 2));
+            }
+
+            return meteorito;
+        }
+
+        private int ContarEnemigosVivos()
+        {
+            return enemigosActivos.Count(enemigo => enemigo.Visible && Convert.ToInt32(enemigo.Tag) > 0);
+        }
+
+        private void ActualizarIndicadoresNivel(bool resaltarEnemigos)
+        {
+            enemigosRestantes = ContarEnemigosVivos();
+            label1.Text = $"Nivel {nivelActual} - Rivales activos: {enemigosRestantes}";
+            if (resaltarEnemigos)
+            {
+                DestacarEtiqueta(label1);
+            }
+
+            int vidaJugador = Math.Max(0, Convert.ToInt32(navex.Tag));
+            label2.Text = $"Vida del Avión: {vidaJugador}";
+        }
+
+        private void AvanzarNivel()
+        {
+            if (enTransicionNivel)
+            {
+                return;
+            }
+
+            enTransicionNivel = true;
+            tiempo?.Stop();
+
+            if (nivelActual >= NivelMaximo)
+            {
+                MostrarMensajeFinal(true);
+                return;
+            }
+
+            labelEstado.Text = $"Nivel {nivelActual} completado. Preparando el siguiente desafío...";
+
+            var transicion = new System.Windows.Forms.Timer { Interval = 1100 };
+            transicion.Tick += (_, _) =>
+            {
+                transicion.Stop();
+                transicion.Dispose();
+
+                nivelActual++;
+                ConfigurarNivelActual();
+
+                enTransicionNivel = false;
+                tiempo?.Start();
+            };
+            transicion.Start();
         }
 
         private void CrearMisil(int anguloRotacion, Color color, string nombre, int x, int y)
@@ -242,9 +505,15 @@ namespace Calidad_Juego
         {
             try
             {
+                if (enTransicionNivel)
+                {
+                    return;
+                }
+
                 ActualizarDisparoJugador();
                 MoverJugador();
                 MoverNaveRival();
+                MoverObstaculos();
                 ProcesarProyectiles();
                 VerificarColisionDirecta();
             }
@@ -346,30 +615,37 @@ namespace Calidad_Juego
             return zonaSegura.Contains(proyectil.Location) && zonaSegura.Contains(new Point(proyectil.Right, proyectil.Bottom));
         }
 
-        private void ActualizarVida(PictureBox objetivo, Label indicador)
+        private void ActualizarVida(PictureBox objetivo, Label indicador, int puntos = 1)
         {
-            int vidaActual = Math.Max(0, Convert.ToInt32(objetivo.Tag) - 1);
+            int vidaActual = Math.Max(0, Convert.ToInt32(objetivo.Tag) - puntos);
             objetivo.Tag = vidaActual;
-            indicador.Text = objetivo == naveRival
-                ? $"Vida del Rival: {vidaActual}"
-                : $"Vida del Avión: {vidaActual}";
 
-            DestacarEtiqueta(indicador);
+            if (objetivo == navex)
+            {
+                label2.Text = $"Vida del Avión: {vidaActual}";
+                DestacarEtiqueta(label2);
 
-            if (vidaActual > 0)
+                if (vidaActual <= 0)
+                {
+                    navex.Visible = false;
+                    MostrarMensajeFinal(false);
+                }
+
+                return;
+            }
+
+            if (!enemigosActivos.Contains(objetivo))
             {
                 return;
             }
 
-            if (objetivo == naveRival)
+            if (vidaActual <= 0)
             {
-                naveRival.Visible = false;
-                MostrarMensajeFinal(true);
+                EliminarEnemigo(objetivo);
             }
             else
             {
-                navex.Visible = false;
-                MostrarMensajeFinal(false);
+                ActualizarIndicadoresNivel(true);
             }
         }
 
@@ -380,20 +656,16 @@ namespace Calidad_Juego
             moverJugadorHaciaDerecha = false;
             moverJugadorHaciaIzquierda = false;
             disparoActivo = false;
+            enTransicionNivel = false;
 
             tiempo?.Stop();
 
             labelEstado.Text = jugadorGana
-                ? "¡Victoria asegurada! Presiona Enter para una nueva misión."
-                : "Misión fallida. Pulsa Enter para intentarlo nuevamente.";
+                ? $"Operación completada. Alcanzaste el nivel {nivelActual}."
+                : $"Misión fallida en el nivel {nivelActual}. Pulsa Enter para reintentar.";
 
-            foreach (Control control in contiene.Controls.Cast<Control>().ToArray())
-            {
-                if (control is PictureBox misil && misil != navex && misil != naveRival)
-                {
-                    misil.Dispose();
-                }
-            }
+            LimpiarElementosTemporales();
+            navex.Visible = false;
 
             if (contiene.Image != null && !ReferenceEquals(contiene.Image, fondoEscenario))
             {
@@ -415,8 +687,8 @@ namespace Calidad_Juego
 
                 string titulo = jugadorGana ? "¡Felicitaciones, piloto!" : "Alerta de misión";
                 string detalle = jugadorGana
-                    ? "Has logrado derribar a la nave rival."
-                    : "La nave rival superó nuestra defensa.";
+                    ? $"Control total del sector tras superar {NivelMaximo} niveles."
+                    : "El escuadrón rival dominó el cielo, pero la academia confía en tu regreso.";
 
                 grafico.DrawString(titulo, fuenteTitulo, Brushes.White, new RectangleF(0, 140, lienzo.Width, 32), formato);
                 grafico.DrawString(detalle, fuenteDetalle, Brushes.WhiteSmoke, new RectangleF(0, 180, lienzo.Width, 60), formato);
@@ -690,7 +962,7 @@ namespace Calidad_Juego
                     }
                     break;
                 case Keys.Enter:
-                    if (tiempo == null || !tiempo.Enabled || !navex.Visible || !naveRival.Visible)
+                    if (tiempo == null || !tiempo.Enabled || !navex.Visible || botonReintentar.Visible)
                     {
                         Iniciar();
                         e.Handled = true;
@@ -762,72 +1034,166 @@ namespace Calidad_Juego
 
         private void MoverNaveRival()
         {
-            if (!naveRival.Visible)
+            if (enemigosActivos.Count == 0)
             {
                 return;
             }
 
-            dispara++;
-            if (dispara >= 100)
+            foreach (var enemigo in enemigosActivos.ToArray())
             {
-                int xRival = naveRival.Left + (naveRival.Width / 2);
-                int yRival = naveRival.Top + (naveRival.Height / 2);
-                CrearMisil(180, Color.OrangeRed, "Rival", xRival, yRival);
-                dispara = 0;
-            }
-
-            int posicionHorizontal = naveRival.Left;
-            if (!moverHaciaIzquierda)
-            {
-                if (posicionHorizontal >= contiene.Width - naveRival.Width)
+                if (!enemigo.Visible)
                 {
-                    moverHaciaIzquierda = true;
+                    continue;
                 }
 
-                posicionHorizontal += 2;
-            }
-            else
-            {
-                if (posicionHorizontal <= 0)
+                int contador = contadorDisparoEnemigo.TryGetValue(enemigo, out int valorActual) ? valorActual + 1 : 1;
+                contadorDisparoEnemigo[enemigo] = contador;
+
+                int cadencia = ObtenerCadenciaDisparoNivel(enemigo);
+                if (contador >= cadencia)
                 {
-                    moverHaciaIzquierda = false;
+                    int xRival = enemigo.Left + (enemigo.Width / 2);
+                    int yRival = enemigo.Top + (enemigo.Height / 2);
+                    CrearMisil(180, Color.OrangeRed, "Rival", xRival, yRival);
+                    contadorDisparoEnemigo[enemigo] = 0;
                 }
 
-                posicionHorizontal -= 2;
-            }
+                float velocidad = velocidadHorizontalEnemiga.TryGetValue(enemigo, out float velocidadGuardada)
+                    ? velocidadGuardada
+                    : 2f;
+                int direccion = direccionHorizontalEnemiga.TryGetValue(enemigo, out int direccionGuardada)
+                    ? direccionGuardada
+                    : 1;
 
-            posicionHorizontal = Math.Clamp(posicionHorizontal, 0, Math.Max(0, contiene.Width - naveRival.Width));
-            naveRival.Left = posicionHorizontal;
+                float nuevoX = enemigo.Left + (velocidad * direccion);
+                if (nuevoX <= 0)
+                {
+                    nuevoX = 0;
+                    direccion = 1;
+                }
+                else if (nuevoX >= contiene.Width - enemigo.Width)
+                {
+                    nuevoX = contiene.Width - enemigo.Width;
+                    direccion = -1;
+                }
+
+                direccionHorizontalEnemiga[enemigo] = direccion;
+                enemigo.Left = (int)Math.Round(nuevoX);
+
+                double factorTiempo = (Environment.TickCount / 120.0) + enemigosActivos.IndexOf(enemigo);
+                int oscilacion = (int)Math.Round(Math.Sin(factorTiempo) * 2.5);
+                int nuevoY = Math.Clamp(enemigo.Top + oscilacion, 20, Math.Max(20, contiene.Height / 2 - 40));
+                enemigo.Top = nuevoY;
+            }
+        }
+
+        private int ObtenerCadenciaDisparoNivel(PictureBox enemigo)
+        {
+            int indice = Math.Max(0, enemigosActivos.IndexOf(enemigo));
+            int cadenciaBase = Math.Max(32, 110 - (nivelActual * 12));
+            int ajuste = Math.Max(0, indice * 5);
+            return Math.Max(28, cadenciaBase - ajuste);
         }
 
         private void ProcesarProyectiles()
         {
             var proyectiles = contiene.Controls
                 .OfType<PictureBox>()
-                .Where(control => control != navex && control != naveRival)
+                .Where(control => control.Tag is string nombre && (nombre == "Misil" || nombre == "Rival"))
                 .ToArray();
 
             foreach (var misil in proyectiles)
             {
+                if (misil.IsDisposed)
+                {
+                    continue;
+                }
+
                 string nombre = misil.Tag as string ?? string.Empty;
                 Rectangle posicionActual = misil.Bounds;
 
-                if (nombre == "Misil" && naveRival.Visible)
+                if (nombre == "Misil")
                 {
-                    if (MetricaImpactoCompleto(posicionActual, naveRival.Bounds))
+                    bool impacto = false;
+
+                    foreach (var obstaculo in obstaculosActivos.ToArray())
                     {
-                        misil.Dispose();
-                        if (!ZonaCentral(posicionActual, naveRival.Bounds))
+                        if (!obstaculo.Visible)
                         {
-                            ActualizarVida(naveRival, label1);
+                            continue;
                         }
 
+                        if (posicionActual.IntersectsWith(obstaculo.Bounds))
+                        {
+                            misil.Dispose();
+                            ReubicarObstaculo(obstaculo);
+                            impacto = true;
+                            break;
+                        }
+                    }
+
+                    if (impacto)
+                    {
                         continue;
                     }
+
+                    foreach (var enemigo in enemigosActivos.ToArray())
+                    {
+                        if (!enemigo.Visible)
+                        {
+                            continue;
+                        }
+
+                        if (MetricaImpactoCompleto(posicionActual, enemigo.Bounds))
+                        {
+                            misil.Dispose();
+                            if (!ZonaCentral(posicionActual, enemigo.Bounds))
+                            {
+                                ActualizarVida(enemigo, label1);
+                            }
+
+                            impacto = true;
+                            break;
+                        }
+                    }
+
+                    if (impacto)
+                    {
+                        continue;
+                    }
+
+                    misil.Top -= VelocidadMisilJugador;
+                    if (misil.Bottom <= 0)
+                    {
+                        misil.Dispose();
+                    }
                 }
-                else if (nombre == "Rival" && navex.Visible)
+                else if (nombre == "Rival")
                 {
-                    if (MetricaImpactoCompleto(posicionActual, navex.Bounds))
+                    bool interrumpido = false;
+
+                    foreach (var obstaculo in obstaculosActivos.ToArray())
+                    {
+                        if (!obstaculo.Visible)
+                        {
+                            continue;
+                        }
+
+                        if (posicionActual.IntersectsWith(obstaculo.Bounds))
+                        {
+                            misil.Dispose();
+                            ReubicarObstaculo(obstaculo);
+                            interrumpido = true;
+                            break;
+                        }
+                    }
+
+                    if (interrumpido)
+                    {
+                        continue;
+                    }
+
+                    if (navex.Visible && MetricaImpactoCompleto(posicionActual, navex.Bounds))
                     {
                         misil.Dispose();
                         if (!ZonaCentral(posicionActual, navex.Bounds))
@@ -837,24 +1203,8 @@ namespace Calidad_Juego
 
                         continue;
                     }
-                }
 
-                if (misil.IsDisposed)
-                {
-                    continue;
-                }
-
-                if (nombre == "Misil")
-                {
-                    misil.Top -= VelocidadMisilJugador;
-                    if (misil.Bottom <= 0)
-                    {
-                        misil.Dispose();
-                    }
-                }
-                else if (nombre == "Rival")
-                {
-                    misil.Top += VelocidadMisilRival;
+                    misil.Top += ObtenerVelocidadMisilRival();
                     if (misil.Top >= contiene.Height)
                     {
                         misil.Dispose();
@@ -863,23 +1213,153 @@ namespace Calidad_Juego
             }
         }
 
+        private void MoverObstaculos()
+        {
+            if (obstaculosActivos.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var obstaculo in obstaculosActivos.ToArray())
+            {
+                if (obstaculo.IsDisposed)
+                {
+                    continue;
+                }
+
+                PointF velocidad = velocidadObstaculos.TryGetValue(obstaculo, out PointF velocidadActual)
+                    ? velocidadActual
+                    : new PointF(0f, 1f + (nivelActual * 0.2f));
+
+                int fase = faseObstaculo.TryGetValue(obstaculo, out int faseActual) ? faseActual : 0;
+                fase = (fase + 6) % 360;
+                faseObstaculo[obstaculo] = fase;
+
+                float desplazamientoSuave = (float)Math.Sin(fase * (Math.PI / 180f)) * 2f;
+
+                int nuevoX = (int)Math.Round(obstaculo.Left + velocidad.X + desplazamientoSuave);
+                int nuevoY = (int)Math.Round(obstaculo.Top + velocidad.Y);
+
+                if (nuevoX <= 0 || nuevoX >= contiene.Width - obstaculo.Width)
+                {
+                    velocidad.X *= -1;
+                    velocidadObstaculos[obstaculo] = velocidad;
+                    nuevoX = Math.Clamp(nuevoX, 0, Math.Max(0, contiene.Width - obstaculo.Width));
+                }
+                else
+                {
+                    velocidadObstaculos[obstaculo] = velocidad;
+                }
+
+                if (nuevoY >= contiene.Height - obstaculo.Height)
+                {
+                    ReubicarObstaculo(obstaculo);
+                    continue;
+                }
+
+                obstaculo.Location = new Point(nuevoX, nuevoY);
+            }
+        }
+
+        private void ReubicarObstaculo(PictureBox obstaculo)
+        {
+            if (obstaculo.IsDisposed)
+            {
+                return;
+            }
+
+            int x = GeneradorAleatorio.Next(0, Math.Max(1, contiene.Width - obstaculo.Width));
+            int y = GeneradorAleatorio.Next(40, Math.Max(80, contiene.Height / 3));
+            obstaculo.Location = new Point(x, y);
+
+            velocidadObstaculos[obstaculo] = new PointF(
+                (float)(GeneradorAleatorio.NextDouble() * 1.6 - 0.8),
+                0.9f + (nivelActual * 0.25f));
+            faseObstaculo[obstaculo] = GeneradorAleatorio.Next(0, 360);
+        }
+
+        private void ObstaculoImpactaJugador(PictureBox obstaculo)
+        {
+            if (!navex.Visible)
+            {
+                return;
+            }
+
+            ActualizarVida(navex, label2, 2);
+            ReubicarObstaculo(obstaculo);
+        }
+
+        private int ObtenerVelocidadMisilRival()
+        {
+            return Math.Min(12, VelocidadMisilRival + Math.Max(0, nivelActual - 1));
+        }
+
+        private void EliminarEnemigo(PictureBox enemigo)
+        {
+            enemigo.Visible = false;
+            enemigosActivos.Remove(enemigo);
+            contadorDisparoEnemigo.Remove(enemigo);
+            direccionHorizontalEnemiga.Remove(enemigo);
+            velocidadHorizontalEnemiga.Remove(enemigo);
+
+            if (!ReferenceEquals(enemigo, naveRival))
+            {
+                contiene.Controls.Remove(enemigo);
+                enemigo.Dispose();
+            }
+
+            ActualizarIndicadoresNivel(true);
+
+            if (!navex.Visible)
+            {
+                return;
+            }
+
+            if (ContarEnemigosVivos() <= 0)
+            {
+                AvanzarNivel();
+            }
+        }
+
         private void VerificarColisionDirecta()
         {
-            if (!naveRival.Visible || !navex.Visible)
+            if (!navex.Visible)
             {
                 return;
             }
 
-            if (!navex.Bounds.IntersectsWith(naveRival.Bounds))
+            foreach (var enemigo in enemigosActivos.ToArray())
             {
-                return;
+                if (!enemigo.Visible)
+                {
+                    continue;
+                }
+
+                if (!navex.Bounds.IntersectsWith(enemigo.Bounds))
+                {
+                    continue;
+                }
+
+                ActualizarVida(navex, label2, 3);
+                if (navex.Visible && Convert.ToInt32(navex.Tag) > 0)
+                {
+                    EliminarEnemigo(enemigo);
+                }
+                break;
             }
 
-            navex.Tag = 0;
-            label2.Text = "Vida del Avión: 0";
-            navex.Visible = false;
-            naveRival.Visible = false;
-            MostrarMensajeFinal(false);
+            foreach (var obstaculo in obstaculosActivos.ToArray())
+            {
+                if (!obstaculo.Visible)
+                {
+                    continue;
+                }
+
+                if (navex.Bounds.IntersectsWith(obstaculo.Bounds))
+                {
+                    ObstaculoImpactaJugador(obstaculo);
+                }
+            }
         }
 
         private void ManejarErrorColeccion(ArgumentOutOfRangeException ex)

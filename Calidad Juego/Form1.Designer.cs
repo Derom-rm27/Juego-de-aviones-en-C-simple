@@ -87,7 +87,7 @@ namespace Calidad_Juego
             labelEstado.Name = "labelEstado";
             labelEstado.Size = new Size(173, 15);
             labelEstado.TabIndex = 1;
-            labelEstado.Text = "Presiona Espacio para disparar";
+            labelEstado.Text = "Mantén presionadas las flechas para maniobrar.";
             //
             // labelIndicaciones
             //
@@ -98,7 +98,7 @@ namespace Calidad_Juego
             labelIndicaciones.Name = "labelIndicaciones";
             labelIndicaciones.Size = new Size(255, 15);
             labelIndicaciones.TabIndex = 1;
-            labelIndicaciones.Text = "Usa las flechas para moverte dentro del radar.";
+            labelIndicaciones.Text = "Espacio para disparar, Enter para reiniciar: supera niveles, meteoritos y escuadrones rivales.";
             //
             // label1
             //
@@ -109,7 +109,7 @@ namespace Calidad_Juego
             label1.Name = "label1";
             label1.Size = new Size(141, 19);
             label1.TabIndex = 2;
-            label1.Text = "Vida del Rival: 50";
+            label1.Text = "Nivel 1 - Rivales activos: 0";
             //
             // label2
             //
