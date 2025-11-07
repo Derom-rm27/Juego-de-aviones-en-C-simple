@@ -22,6 +22,7 @@ namespace Calidad_Juego
         private Label labelIndicaciones = null!;
         private Label label1 = null!;
         private Label label2 = null!;
+        private Button botonReintentar = null!;
 
         /// <summary>
         ///  Liberar los recursos que se estén usando.
@@ -52,6 +53,7 @@ namespace Calidad_Juego
             labelIndicaciones = new Label();
             label1 = new Label();
             label2 = new Label();
+            botonReintentar = new Button();
             SuspendLayout();
             // 
             // panelEncabezado
@@ -120,12 +122,29 @@ namespace Calidad_Juego
             label2.TabIndex = 3;
             label2.Text = "Vida del Avión: 20";
             //
+            // botonReintentar
+            //
+            botonReintentar.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            botonReintentar.BackColor = Color.FromArgb(37, 54, 92);
+            botonReintentar.FlatAppearance.BorderSize = 0;
+            botonReintentar.FlatStyle = FlatStyle.Flat;
+            botonReintentar.Font = new Font("Segoe UI", 9F, FontStyle.Bold, GraphicsUnit.Point);
+            botonReintentar.ForeColor = Color.FromArgb(228, 239, 255);
+            botonReintentar.Location = new Point(204, 516);
+            botonReintentar.Name = "botonReintentar";
+            botonReintentar.Size = new Size(144, 32);
+            botonReintentar.TabIndex = 4;
+            botonReintentar.Text = "Jugar de nuevo";
+            botonReintentar.UseVisualStyleBackColor = false;
+            botonReintentar.Visible = false;
+            //
             // Form1
             //
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(13, 19, 33);
             ClientSize = new Size(360, 560);
+            Controls.Add(botonReintentar);
             Controls.Add(labelIndicaciones);
             Controls.Add(label2);
             Controls.Add(label1);
