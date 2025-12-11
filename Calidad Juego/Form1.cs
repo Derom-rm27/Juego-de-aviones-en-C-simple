@@ -21,6 +21,11 @@ namespace Calidad_Juego
         private readonly PictureBox naveRival = new();
         private readonly PictureBox contiene = new();
 
+        private class ExplosionState
+        {
+            public int DuracionRestante { get; set; }
+        }
+
         private System.Windows.Forms.Timer? tiempo;
         private int dispara;
         private bool moverHaciaIzquierda;
@@ -113,7 +118,7 @@ namespace Calidad_Juego
 
             contiene.Controls.Clear();
 
-            CrearNave(navex, 0, 1, Color.SeaGreen, 20);
+            CrearNave(navex, 0, 1, Color.SeaGreen, 3);
             CrearNave(naveRival, 180, GeneradorAleatorio.Next(1, 4), Color.DarkBlue, 50);
 
             int maxXJugador = Math.Max(1, contiene.Width - navex.Width - 1);
@@ -130,7 +135,7 @@ namespace Calidad_Juego
             naveRival.BringToFront();
 
             label1.Text = $"Vida del Rival: {naveRival.Tag}";
-            label2.Text = $"Vida del Avión: {navex.Tag}";
+            label2.Text = $"Vida del Avión: {GenerarCorazones((int)navex.Tag)}";
 
             tiempo?.Stop();
             tiempo?.Dispose();
@@ -272,9 +277,25 @@ namespace Calidad_Juego
                         misil.Top += 5;
                         if (misil.Top >= contiene.Height)
                         {
+                            CrearExplosion(misil.Left + (misil.Width / 2));
                             misil.Dispose();
                             continue;
                         }
+                    }
+                }
+
+                if (misil.Tag is ExplosionState explosion)
+                {
+                    explosion.DuracionRestante--;
+                    if (navex.Visible && navex.Bounds.IntersectsWith(misil.Bounds))
+                    {
+                        ActualizarVida(navex, label2);
+                    }
+
+                    if (explosion.DuracionRestante <= 0)
+                    {
+                        misil.Dispose();
+                        continue;
                     }
                 }
             }
@@ -310,9 +331,9 @@ namespace Calidad_Juego
             objetivo.Tag = vidaActual;
             indicador.Text = objetivo == naveRival
                 ? $"Vida del Rival: {vidaActual}"
-                : $"Vida del Avión: {vidaActual}";
+                : $"Vida del Avión: {GenerarCorazones(vidaActual)}";
 
-            if (vidaActual >= 0)
+            if (vidaActual > 0)
             {
                 return;
             }
@@ -549,6 +570,50 @@ namespace Calidad_Juego
             }
 
             return resultado;
+        }
+
+        private void CrearExplosion(int centroX)
+        {
+            const int anchoExplosion = 120;
+            const int altoExplosion = 60;
+
+            int posicionX = Math.Clamp(centroX - (anchoExplosion / 2), 0, Math.Max(0, contiene.Width - anchoExplosion));
+            int posicionY = contiene.Height - altoExplosion;
+
+            var explosion = new PictureBox
+            {
+                Size = new Size(anchoExplosion, altoExplosion),
+                BackColor = Color.Transparent,
+                Location = new Point(posicionX, posicionY),
+                Tag = new ExplosionState { DuracionRestante = 40 }
+            };
+
+            var imagen = new Bitmap(explosion.Width, explosion.Height);
+            using (var grafico = Graphics.FromImage(imagen))
+            {
+                grafico.SmoothingMode = SmoothingMode.AntiAlias;
+                grafico.Clear(Color.Transparent);
+
+                var rectangulo = new Rectangle(0, altoExplosion / 2, anchoExplosion, altoExplosion / 2);
+                using var pincel = new LinearGradientBrush(rectangulo, Color.OrangeRed, Color.Yellow, LinearGradientMode.Vertical);
+                grafico.FillEllipse(pincel, rectangulo);
+                grafico.DrawEllipse(new Pen(Color.DarkRed, 2), rectangulo);
+            }
+
+            explosion.Image = imagen;
+
+            contiene.Controls.Add(explosion);
+            explosion.BringToFront();
+
+            if (navex.Visible && navex.Bounds.IntersectsWith(explosion.Bounds))
+            {
+                ActualizarVida(navex, label2);
+            }
+        }
+
+        private static string GenerarCorazones(int cantidad)
+        {
+            return new string('❤', Math.Max(0, cantidad));
         }
     }
 }

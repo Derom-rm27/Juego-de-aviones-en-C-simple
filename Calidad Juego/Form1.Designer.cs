@@ -62,9 +62,9 @@ namespace Calidad_Juego
             label2.Font = new Font("Segoe UI", 10F, FontStyle.Bold, GraphicsUnit.Point);
             label2.Location = new Point(12, 35);
             label2.Name = "label2";
-            label2.Size = new Size(149, 19);
+            label2.Size = new Size(154, 19);
             label2.TabIndex = 1;
-            label2.Text = "Vida del Avión: 20";
+            label2.Text = "Vida del Avión: ❤❤❤";
             // 
             // Form1
             // 
