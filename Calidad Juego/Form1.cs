@@ -12,6 +12,7 @@ using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using Calidad_Juego.Modelos;
 using MediaPlayer = System.Windows.Media.MediaPlayer;
 
 namespace Calidad_Juego
@@ -73,49 +74,6 @@ namespace Calidad_Juego
             public int VidaMaxima { get; set; }
         }
 
-        private static readonly Point[] NaveTipo1 =
-        {
-            new(29, 0), new(30, 1), new(30, 6), new(31, 6), new(31, 11), new(32, 11), new(32, 17), new(35, 17),
-            new(35, 16), new(37, 16), new(37, 17), new(38, 18), new(38, 28), new(39, 28), new(42, 39), new(44, 45),
-            new(50, 51), new(51, 51), new(51, 52), new(58, 59), new(58, 66), new(44, 66), new(39, 71), new(35, 71),
-            new(35, 74), new(32, 77), new(26, 77), new(23, 74), new(23, 71), new(19, 71), new(14, 66), new(0, 66),
-            new(0, 59), new(7, 52), new(7, 51), new(8, 51), new(14, 45), new(16, 39), new(19, 28), new(20, 28),
-            new(20, 18), new(21, 17), new(21, 16), new(23, 16), new(23, 17), new(26, 17), new(26, 11), new(27, 11),
-            new(27, 6), new(28, 6), new(28, 1), new(29, 0)
-        };
-
-        private static readonly Point[] NaveTipo2 =
-        {
-            new(24, 0), new(29, 5), new(29, 18), new(32, 21), new(34, 21), new(38, 17), new(41, 20), new(41, 30),
-            new(47, 36), new(47, 41), new(41, 41), new(38, 44), new(36, 44), new(33, 41), new(30, 41), new(25, 46),
-            new(22, 46), new(17, 41), new(14, 41), new(11, 44), new(9, 44), new(6, 41), new(0, 41), new(0, 36),
-            new(6, 30), new(6, 20), new(9, 17), new(13, 21), new(15, 21), new(18, 18), new(18, 5), new(23, 0)
-        };
-
-        private static readonly Point[] NaveTipo3 =
-        {
-            new(25, 5), new(26, 54), new(26, 5), new(26, 50), new(27, 50), new(28, 50), new(29, 50), new(30, 51),
-            new(31, 51), new(32, 52), new(32, 49), new(31, 48), new(30, 47), new(29, 46), new(28, 45), new(27, 44),
-            new(27, 36), new(28, 35), new(28, 25), new(29, 25), new(30, 25), new(31, 25), new(32, 26), new(33, 26),
-            new(34, 27), new(35, 28), new(36, 8), new(37, 29), new(38, 30), new(39, 30), new(40, 31), new(41, 32),
-            new(42, 32), new(43, 33), new(44, 34), new(45, 35), new(46, 36), new(47, 36), new(48, 36), new(49, 37),
-            new(50, 37), new(51, 38), new(51, 37), new(51, 36), new(50, 35), new(50, 35), new(37, 15), new(37, 15),
-            new(36, 14), new(35, 14), new(34, 15), new(34, 21), new(28, 15), new(28, 7), new(27, 6), new(26, 5),
-            new(25, 5), new(24, 6), new(23, 7), new(23, 15), new(17, 21), new(17, 15), new(16, 14), new(15, 14),
-            new(14, 15), new(14, 22), new(13, 25), new(12, 30), new(11, 31), new(10, 32), new(9, 32), new(8, 33),
-            new(7, 34), new(6, 35), new(5, 36), new(4, 35), new(3, 36), new(2, 37), new(1, 37), new(0, 38),
-            new(0, 39), new(0, 40), new(1, 40), new(2, 40), new(3, 40), new(4, 41), new(5, 42), new(6, 42),
-            new(7, 42), new(8, 41), new(9, 40), new(10, 40), new(11, 40), new(12, 40), new(13, 40), new(14, 41),
-            new(15, 42), new(16, 41), new(17, 40), new(18, 40), new(19, 40), new(20, 40), new(21, 40), new(22, 40),
-            new(23, 40), new(24, 41), new(25, 42), new(26, 42), new(27, 42), new(28, 41), new(29, 40), new(30, 40),
-            new(31, 40), new(32, 40), new(33, 39), new(33, 38), new(33, 37), new(33, 36), new(33, 35), new(33, 34),
-            new(33, 33), new(32, 32), new(31, 31), new(30, 30), new(29, 29), new(28, 28), new(27, 27), new(26, 26),
-            new(25, 25), new(24, 24), new(23, 23), new(22, 22), new(22, 21), new(22, 20), new(22, 19), new(22, 18),
-            new(22, 17), new(22, 16), new(22, 15), new(21, 14), new(20, 13), new(20, 12), new(20, 11), new(21, 10),
-            new(22, 9), new(23, 9), new(24, 9), new(25, 9), new(26, 9), new(25, 8), new(24, 7), new(23, 6),
-            new(22, 5), new(21, 4), new(20, 3), new(19, 3), new(18, 2), new(17, 1), new(16, 0)
-        };
-
         private static readonly Point[] MisilBase =
         {
             new(4, 1), new(5, 1), new(6, 2), new(6, 7), new(7, 8), new(8, 9), new(7, 9), new(6, 10),
@@ -132,6 +90,7 @@ namespace Calidad_Juego
             Load += Form1_Load;
             KeyDown += ActividadTecla;
             KeyUp += DetenerActividadTecla;
+            Resize += (_, _) => AjustarAreaJuego();
             FormClosed += (_, _) =>
             {
                 fondoEscenario?.Dispose();
@@ -171,45 +130,8 @@ namespace Calidad_Juego
 
             labelEstado.Text = "Mantén presionadas las flechas para maniobrar.";
             labelIndicaciones.Text = "Espacio para disparar, Enter para reiniciar: supera niveles, meteoritos y escuadrones rivales.";
-            labelIndicaciones.MaximumSize = new Size(ClientSize.Width - 24, 0);
-
-            int margenSuperior = label2.Bottom + 20;
-            int ancho = ClientSize.Width - 24;
-            int alto = ClientSize.Height - margenSuperior - 20;
-
-            contiene.SuspendLayout();
-            contiene.BackColor = Color.Transparent;
-            contiene.BorderStyle = BorderStyle.FixedSingle;
-            contiene.Size = new Size(Math.Max(260, ancho), Math.Max(320, alto));
-            contiene.Location = new Point(12, margenSuperior);
-            contiene.TabStop = false;
-            if (contiene.Image != null && !ReferenceEquals(contiene.Image, fondoEscenario))
-            {
-                contiene.Image.Dispose();
-            }
-            contiene.Image = null;
-            contiene.Visible = true;
-            contiene.ResumeLayout(false);
-
-            if (!Controls.Contains(contiene))
-            {
-                Controls.Add(contiene);
-            }
-
-            contiene.SendToBack();
-            label1.BringToFront();
-            label2.BringToFront();
-            labelIndicaciones.BringToFront();
-
-            if (fondoEscenario != null)
-            {
-                fondoEscenario.Dispose();
-            }
-
-            fondoEscenario = CrearFondoEscenario(contiene.Size);
+            AjustarAreaJuego();
             ConfigurarMusicaFondo();
-            contiene.BackgroundImage = fondoEscenario;
-            contiene.BackgroundImageLayout = ImageLayout.Stretch;
 
             contiene.Controls.Clear();
 
@@ -223,6 +145,93 @@ namespace Calidad_Juego
             };
             tiempo.Tick += ImpactarTick;
             tiempo.Start();
+        }
+
+        private void AjustarAreaJuego()
+        {
+            if (IsDisposed)
+            {
+                return;
+            }
+
+            labelIndicaciones.MaximumSize = new Size(Math.Max(200, ClientSize.Width - 24), 0);
+
+            int margenSuperior = label2.Bottom + 20;
+            int ancho = ClientSize.Width - 24;
+            int alto = ClientSize.Height - margenSuperior - 20;
+
+            Size nuevoTamano = new(Math.Max(260, ancho), Math.Max(320, alto));
+            bool fondoNecesitaActualizar = nuevoTamano != contiene.Size;
+
+            contiene.SuspendLayout();
+            contiene.BackColor = Color.Transparent;
+            contiene.BorderStyle = BorderStyle.FixedSingle;
+            contiene.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            contiene.Size = nuevoTamano;
+            contiene.Location = new Point(12, margenSuperior);
+            contiene.TabStop = false;
+            contiene.Visible = true;
+            contiene.ResumeLayout(false);
+
+            if (!Controls.Contains(contiene))
+            {
+                Controls.Add(contiene);
+            }
+
+            contiene.SendToBack();
+            label1.BringToFront();
+            label2.BringToFront();
+            labelIndicaciones.BringToFront();
+
+            if (fondoNecesitaActualizar)
+            {
+                if (contiene.Image != null && !ReferenceEquals(contiene.Image, fondoEscenario))
+                {
+                    contiene.Image.Dispose();
+                }
+
+                fondoEscenario?.Dispose();
+                fondoEscenario = CrearFondoEscenario(contiene.Size);
+                contiene.BackgroundImage = fondoEscenario;
+                contiene.BackgroundImageLayout = ImageLayout.Stretch;
+
+                ReubicarElementosEnContenedor();
+            }
+        }
+
+        private void ReubicarElementosEnContenedor()
+        {
+            AjustarPosicionDentroDeLimites(navex);
+
+            foreach (var enemigo in enemigosActivos.ToList())
+            {
+                AjustarPosicionDentroDeLimites(enemigo, true);
+            }
+
+            foreach (var obstaculo in obstaculosActivos.ToList())
+            {
+                AjustarPosicionDentroDeLimites(obstaculo);
+            }
+        }
+
+        private void AjustarPosicionDentroDeLimites(PictureBox control, bool actualizarBarra = false)
+        {
+            if (contiene.Width <= 0 || contiene.Height <= 0 || control.IsDisposed)
+            {
+                return;
+            }
+
+            int limiteX = Math.Max(0, contiene.Width - control.Width);
+            int limiteY = Math.Max(0, contiene.Height - control.Height);
+            int nuevoX = Math.Clamp(control.Left, 0, limiteX);
+            int nuevoY = Math.Clamp(control.Top, 0, limiteY);
+
+            control.Location = new Point(nuevoX, nuevoY);
+
+            if (actualizarBarra)
+            {
+                ActualizarPosicionBarraVidaEnemigo(control);
+            }
         }
 
         private void ConfigurarMusicaFondo()
@@ -377,7 +386,7 @@ namespace Calidad_Juego
             {
                 PictureBox enemigo = i == 0 ? naveRival : new PictureBox();
 
-                int tipo = (nivelActual + i) % 3 + 1;
+                int tipo = (nivelActual + i) % 4 + 1;
                 Color color = Color.FromArgb(
                     Math.Clamp(70 + (nivelActual * 25) + (i * 15), 60, 240),
                     Math.Clamp(80 + (i * 30), 70, 240),
@@ -985,44 +994,26 @@ namespace Calidad_Juego
             avion.SizeMode = PictureBoxSizeMode.Normal;
             avion.TabStop = false;
 
-            Point[] figuraBase;
-            int altura;
-            int ancho;
-            bool usarLineas = false;
+            var plantilla = NavePlantilla.Obtener(tipo);
+            var figuraEscalada = plantilla.Escalar();
+            var contornosRotados = RotarContornos(figuraEscalada.Contornos, figuraEscalada.Tamano.Height, anguloRotacion);
 
-            switch (tipo)
-            {
-                case 1:
-                    figuraBase = NaveTipo1;
-                    altura = 77;
-                    ancho = 58;
-                    break;
-                case 2:
-                    figuraBase = NaveTipo2;
-                    altura = 46;
-                    ancho = 47;
-                    usarLineas = true;
-                    break;
-                default:
-                    figuraBase = NaveTipo3;
-                    altura = 54;
-                    ancho = 51;
-                    break;
-            }
-
-            var figuraRotada = RotarFigura(figuraBase, altura, anguloRotacion);
             using var grafico = new GraphicsPath();
-            if (usarLineas)
+            foreach (var contorno in contornosRotados)
             {
-                grafico.AddLines(figuraRotada);
-                grafico.CloseFigure();
-            }
-            else
-            {
-                grafico.AddPolygon(figuraRotada);
+                grafico.StartFigure();
+                if (plantilla.UsarLineas)
+                {
+                    grafico.AddLines(contorno);
+                    grafico.CloseFigure();
+                }
+                else
+                {
+                    grafico.AddPolygon(contorno);
+                }
             }
 
-            avion.Size = new Size(ancho, altura);
+            avion.Size = figuraEscalada.Tamano;
             avion.Region = new Region(grafico);
 
             var imagen = new Bitmap(avion.Width, avion.Height);
@@ -1031,19 +1022,28 @@ namespace Calidad_Juego
                 pinta.SmoothingMode = SmoothingMode.AntiAlias;
                 pinta.Clear(Color.Transparent);
 
-                pinta.FillRegion(new SolidBrush(color), new Region(grafico));
+                using var rellenoBase = new SolidBrush(color);
+                pinta.FillRegion(rellenoBase, new Region(grafico));
 
-                Point[] colorea =
+                if (tipo == 1)
                 {
-                    new(24, 2), new(27, 5), new(27, 18), new(31, 22), new(34, 22), new(37, 19), new(38, 19), new(39, 20),
-                    new(39, 30), new(45, 36), new(45, 39), new(41, 39), new(38, 42), new(35, 42), new(32, 39), new(30, 39),
-                    new(25, 44), new(21, 44), new(16, 39), new(14, 39), new(11, 42), new(8, 42), new(5, 39), new(1, 39),
-                    new(1, 36), new(7, 30), new(7, 20), new(8, 19), new(9, 19), new(12, 22), new(15, 22), new(19, 18),
-                    new(19, 5), new(22, 2)
-                };
+                    Point[] colorea =
+                    {
+                        new(24, 2), new(27, 5), new(27, 18), new(31, 22), new(34, 22), new(37, 19), new(38, 19), new(39, 20),
+                        new(39, 30), new(45, 36), new(45, 39), new(41, 39), new(38, 42), new(35, 42), new(32, 39), new(30, 39),
+                        new(25, 44), new(21, 44), new(16, 39), new(14, 39), new(11, 42), new(8, 42), new(5, 39), new(1, 39),
+                        new(1, 36), new(7, 30), new(7, 20), new(8, 19), new(9, 19), new(12, 22), new(15, 22), new(19, 18),
+                        new(19, 5), new(22, 2)
+                    };
 
-                pinta.DrawPolygon(Pens.Black, grafico.PathData.Points);
-                pinta.FillPolygon(new SolidBrush(Color.FromArgb(200, Color.DarkSeaGreen)), colorea);
+                    pinta.DrawPolygon(Pens.Black, grafico.PathData.Points.Select(Point.Round).ToArray());
+                    pinta.FillPolygon(new SolidBrush(Color.FromArgb(200, Color.DarkSeaGreen)), colorea);
+                }
+                else
+                {
+                    using var contorno = new Pen(Color.FromArgb(180, color), 1.4f);
+                    pinta.DrawPath(contorno, grafico);
+                }
             }
 
             avion.Image = RotateImage(imagen, anguloRotacion);
@@ -1118,6 +1118,11 @@ namespace Calidad_Juego
             }
 
             avion.Image = RotateImage(imagen, anguloRotacion);
+        }
+
+        private static IReadOnlyList<Point[]> RotarContornos(IEnumerable<Point[]> contornos, int alto, int anguloRotacion)
+        {
+            return contornos.Select(contorno => RotarFigura(contorno, alto, anguloRotacion)).ToList();
         }
 
         private static Image RotateImage(Image imagen, float anguloRotacion)
