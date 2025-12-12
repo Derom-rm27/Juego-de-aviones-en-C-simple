@@ -151,6 +151,7 @@ namespace Calidad_Juego
             Controls.Add(panelEncabezado);
             KeyPreview = true;
             Margin = new System.Windows.Forms.Padding(3, 4, 3, 4);
+            MinimumSize = new System.Drawing.Size(520, 420);
             StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             Text = "Juego de Aviones";
             panelEncabezado.ResumeLayout(false);
