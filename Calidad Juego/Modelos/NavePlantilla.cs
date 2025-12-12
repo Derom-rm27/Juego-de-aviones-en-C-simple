@@ -22,6 +22,11 @@ namespace Calidad_Juego.Modelos
         public bool UsarLineas { get; }
         public float EscalaPreferida { get; }
 
+        public static NavePlantilla CrearDesdeDatos(int tipo, IEnumerable<PointF[]> contornos, SizeF tamanoReferencia, bool usarLineas = false, float escalaPreferida = 1f)
+        {
+            return new NavePlantilla(tipo, contornos, tamanoReferencia, usarLineas, escalaPreferida);
+        }
+
         public static NavePlantilla Obtener(int tipo)
         {
             return tipo switch
@@ -29,7 +34,7 @@ namespace Calidad_Juego.Modelos
                 1 => Tipo1,
                 2 => Tipo2,
                 3 => Tipo3,
-                4 => Tipo4,
+                4 => NavePrincipal,
                 _ => Tipo1
             };
         }
@@ -69,26 +74,12 @@ namespace Calidad_Juego.Modelos
             return puntos.Select(p => new PointF(p.X, p.Y)).ToArray();
         }
 
-        private static IEnumerable<PointF[]> CrearContornosTipo4()
-        {
-            return new List<PointF[]>
-            {
-                new PointF[]
-                {
-                    new(564f, -593f), new(565f, -592f), new(566f, -592f), new(567f, -592f), new(568f, -592f), new(569f, -593f),
-                    new(569f, -594f), new(569f, -595f), new(569f, -596f), new(569f, -597f), new(569f, -598f), new(568f, -599f),
-                    new(567f, -599f), new(566f, -599f), new(565f, -599f), new(564f, -598f), new(564f, -597f), new(564f, -596f),
-                    new(564f, -595f), new(564f, -594f)
-                },
-                new PointF[]
-                {
-                    new(-667f, -669f), new(-666f, -668f), new(-665f, -669f), new(-665f, -670f), new(-666f, -671f),
-                    new(-665f, -672f), new(-666f, -673f), new(-666f, -674f), new(-666f, -675f), new(-667f, -676f),
-                    new(-668f, -676f), new(-669f, -675f), new(-669f, -674f), new(-669f, -673f), new(-669f, -672f),
-                    new(-668f, -671f), new(-668f, -670f)
-                }
-            };
-        }
+        private static readonly NavePlantilla NavePrincipal = CrearDesdeDatos(
+            4,
+            DatosNavesGrandes.ObtenerNaveCompleta(),
+            new SizeF(280f, 260f),
+            usarLineas: true,
+            escalaPreferida: 0.35f);
 
         private static readonly NavePlantilla Tipo1 = new(
             1,
@@ -170,12 +161,6 @@ namespace Calidad_Juego.Modelos
             },
             new SizeF(51, 54));
 
-        private static readonly NavePlantilla Tipo4 = new(
-            4,
-            CrearContornosTipo4(),
-            new SizeF(260, 160),
-            usarLineas: true,
-            escalaPreferida: 1f);
     }
 
     internal sealed record NaveFiguraEscalada(IReadOnlyList<Point[]> Contornos, Size Tamano, bool UsarLineas);
