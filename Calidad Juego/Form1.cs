@@ -13,3 +13,16 @@ using Calidad_Juego.Escenarios;
                 reproductorMusica.SoundLocation = rutaCancion;
                 reproductorMusica.Load();
                 reproductorMusica.PlayLooping();
+            Resize += Form1_Resize;
+            FormClosed += Form1_FormClosed;
+        private void Form1_Resize(object? sender, EventArgs e)
+        {
+            AjustarAreaJuego();
+        }
+
+        private void Form1_FormClosed(object? sender, FormClosedEventArgs e)
+        {
+            fondoEscenario?.Dispose();
+            reproductorMusica.Stop();
+        }
+
